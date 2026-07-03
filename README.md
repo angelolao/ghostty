@@ -59,6 +59,25 @@ separate app from an official Ghostty install — its own preferences, its own
 permission grants, no clashes. Because it's a local (ad-hoc signed) build,
 macOS will prompt for permissions on first launch; that's expected.
 
+### Known Limitations
+
+- **macOS only.** The sidebar is implemented in the macOS (AppKit/SwiftUI)
+  app. Linux/GTK builds are unaffected and keep the standard Ghostty tab UI.
+- **Builds from source.** Shared as source, not a signed/notarized app.
+  Requires **Zig 0.15.2** and **Xcode** (see above).
+- **Local unsigned build.** macOS prompts for permissions on first launch, and
+  may re-prompt occasionally after a rebuild because the ad-hoc code signature
+  changes each build. Preferences and config persist regardless.
+
+### Credits & License
+
+This is a fork of [Ghostty](https://github.com/ghostty-org/ghostty) by Mitchell
+Hashimoto and the Ghostty contributors. The sidebar tab system originates from
+[Tom Reinert's `sidebar-tabs` branch](https://github.com/tomreinert/ghostty).
+Ghostty is MIT licensed, and this fork retains the original
+[`LICENSE`](LICENSE). All credit for Ghostty itself goes to the upstream
+project — please support it at [ghostty.org](https://ghostty.org).
+
 ---
 
 <!-- LOGO -->
