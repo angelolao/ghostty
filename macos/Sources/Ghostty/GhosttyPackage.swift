@@ -363,6 +363,9 @@ extension Notification.Name {
     /// The active selection changed
     static let ghosttySelectionDidChange = Notification.Name("com.mitchellh.ghostty.ghosttySelectionDidChange")
 
+    /// A desktop notification was fired for a surface (OSC 9/99 or command completion)
+    static let ghosttyDesktopNotificationDidFire = Notification.Name("com.mitchellh.ghostty.desktopNotificationDidFire")
+
     /// Readonly mode changed
     static let ghosttyDidChangeReadonly = Notification.Name("com.mitchellh.ghostty.didChangeReadonly")
     static let ReadonlyKey = ghosttyDidChangeReadonly.rawValue + ".readonly"

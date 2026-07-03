@@ -277,6 +277,14 @@ class AppDelegate: NSObject,
             name: Ghostty.Notification.ghosttyNewTab,
             object: nil)
 
+        // Listen for distributed notifications to set tab title from external processes
+        DistributedNotificationCenter.default().addObserver(
+            self,
+            selector: #selector(handleSetTabTitle(_:)),
+            name: .init("com.ghostty.setTabTitle"),
+            object: nil
+        )
+
         // Configure user notifications
         let actions = [
             UNNotificationAction(identifier: Ghostty.userNotificationActionShow, title: "Show")
@@ -641,6 +649,14 @@ class AppDelegate: NSObject,
         ] as? Ghostty.Config else { return }
 
         ghosttyConfigDidChange(config: config)
+    }
+
+    @objc private func handleSetTabTitle(_ notification: Notification) {
+        guard let title = notification.userInfo?["title"] as? String else { return }
+        DispatchQueue.main.async {
+            guard let controller = NSApp.keyWindow?.windowController as? BaseTerminalController else { return }
+            controller.titleOverride = title.isEmpty ? nil : title
+        }
     }
 
     @objc private func ghosttyBellDidRing(_ notification: Notification) {

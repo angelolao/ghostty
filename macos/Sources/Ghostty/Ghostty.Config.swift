@@ -552,6 +552,38 @@ extension Ghostty {
             )
         }
 
+        /// The color for the active tab highlight in the sidebar.
+        /// Returns nil if not configured, in which case the sidebar uses its default.
+        var sidebarActiveTabColor: Color? {
+            guard let config = self.config else { return nil }
+            var color: ghostty_config_color_s = .init()
+            let key = "sidebar-active-tab-color"
+            if !ghostty_config_get(config, &color, key, UInt(key.lengthOfBytes(using: .utf8))) {
+                return nil
+            }
+            return .init(
+                red: Double(color.r) / 255,
+                green: Double(color.g) / 255,
+                blue: Double(color.b) / 255
+            )
+        }
+
+        var sidebarTitleFontSize: CGFloat {
+            guard let config = self.config else { return 12 }
+            var v: CUnsignedInt = 12
+            let key = "sidebar-title-font-size"
+            _ = ghostty_config_get(config, &v, key, UInt(key.lengthOfBytes(using: .utf8)))
+            return CGFloat(v)
+        }
+
+        var sidebarSubtitleFontSize: CGFloat {
+            guard let config = self.config else { return 10 }
+            var v: CUnsignedInt = 10
+            let key = "sidebar-subtitle-font-size"
+            _ = ghostty_config_get(config, &v, key, UInt(key.lengthOfBytes(using: .utf8)))
+            return CGFloat(v)
+        }
+
         #if canImport(AppKit)
         var quickTerminalPosition: QuickTerminalPosition {
             guard let config = self.config else { return .top }

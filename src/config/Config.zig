@@ -1086,6 +1086,18 @@ palette: Palette = .{},
 /// Available since: 1.1.0
 @"split-divider-color": ?Color = null,
 
+/// The background color of the active tab in the sidebar. If this is not set,
+/// the accent color with reduced opacity will be used.
+/// Specified as either hex (`#RRGGBB` or `RRGGBB`) or a named X11 color.
+@"sidebar-active-tab-color": ?Color = null,
+
+/// The font size for tab titles in the sidebar. Default is 12.
+@"sidebar-title-font-size": u8 = 12,
+
+/// The font size for subtitle text (directory, branch, metadata) in the sidebar.
+/// Default is 10.
+@"sidebar-subtitle-font-size": u8 = 10,
+
 /// Control when Ghostty preserves a zoomed split. Under normal circumstances,
 /// any operation that changes focus or layout of the split tree in a window
 /// will unzoom any zoomed split. This configuration allows you to control

@@ -19,6 +19,9 @@ extension Ghostty {
             }
         }
 
+        // Custom metadata for the sidebar, set via: printf '\e]2;!meta:key=value\a'
+        var sidebarMetadata: [String: String] = [:]
+
         // The progress report (if any)
         override var progressReport: Action.ProgressReport? {
             didSet {
@@ -598,7 +601,43 @@ extension Ghostty {
             }
         }
 
+        /// Prefix used to set a sticky tab title override from CLI.
+        /// Usage: printf '\e]2;!rename:My Tab Name\a'
+        private static let renamePrefix = "!rename:"
+
+        /// Prefix used to set sidebar metadata from CLI.
+        /// Usage: printf '\e]2;!meta:key=value\a'
+        /// Clear: printf '\e]2;!meta:key=\a'
+        private static let metaPrefix = "!meta:"
+
         func setTitle(_ title: String) {
+            // Intercept sticky rename command before any coalescing or filtering.
+            if title.hasPrefix(Self.renamePrefix) {
+                let newTitle = String(title.dropFirst(Self.renamePrefix.count))
+                DispatchQueue.main.async { [weak self] in
+                    guard let self,
+                          let window = self.window,
+                          let controller = window.windowController as? BaseTerminalController else { return }
+                    controller.titleOverride = newTitle.isEmpty ? nil : newTitle
+                }
+                return
+            }
+
+            // Intercept metadata commands for sidebar display.
+            if title.hasPrefix(Self.metaPrefix) {
+                let payload = String(title.dropFirst(Self.metaPrefix.count))
+                if let eqIdx = payload.firstIndex(of: "=") {
+                    let key = String(payload[payload.startIndex..<eqIdx])
+                    let value = String(payload[payload.index(after: eqIdx)...])
+                    if value.isEmpty {
+                        sidebarMetadata.removeValue(forKey: key)
+                    } else {
+                        sidebarMetadata[key] = value
+                    }
+                }
+                return
+            }
+
             // This fixes an issue where very quick changes to the title could
             // cause an unpleasant flickering. We set a timer so that we can
             // coalesce rapid changes. The timer is short enough that it still
