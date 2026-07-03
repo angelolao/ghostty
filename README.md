@@ -38,20 +38,30 @@ Built the same way as upstream Ghostty. You need:
 - **Xcode** (the full app, not just the Command Line Tools) — the macOS app
   bundle is built via `xcodebuild`.
 
-Then:
+Then (`sidebar-tabs` is the default branch, so a plain clone lands on it):
 
 ```bash
 git clone https://github.com/angelolao/ghostty.git
 cd ghostty
-git checkout sidebar-tabs
 zig build
 ```
 
-The finished app is at `zig-out/Ghostty.app`. Launch it with:
+The finished app is at `zig-out/Ghostty.app`. Run it directly:
 
 ```bash
 open zig-out/Ghostty.app
 ```
+
+To keep it around, copy it into your Applications folder (the rename just makes
+it easy to spot — macOS identifies the app by its bundle ID, not the filename):
+
+```bash
+cp -R zig-out/Ghostty.app "/Applications/Ghostty Sidebar.app"
+open "/Applications/Ghostty Sidebar.app"
+```
+
+To pick up future updates later, just `git pull && zig build` and copy it over
+again.
 
 It shows up as **Ghostty Sidebar** and uses its own bundle identifier
 (`com.angelolao.ghostty-sidebar`), so it installs and runs as a completely
