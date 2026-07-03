@@ -27,6 +27,38 @@ sidebar-subtitle-font-size = 11
 swift -e 'import Foundation; DistributedNotificationCenter.default().postNotificationName(.init("com.ghostty.setTabTitle"), object: nil, userInfo: ["title": "My Tab"], deliverImmediately: true)'
 ```
 
+### Building This Fork (macOS)
+
+Built the same way as upstream Ghostty. You need:
+
+- **Zig 0.15.2** — this exact version is required. Homebrew's `zig` is often
+  newer; if `zig version` doesn't print `0.15.2`, grab it from
+  [ziglang.org/download](https://ziglang.org/download/) or use the Nix flake
+  (`nix develop`).
+- **Xcode** (the full app, not just the Command Line Tools) — the macOS app
+  bundle is built via `xcodebuild`.
+
+Then:
+
+```bash
+git clone https://github.com/angelolao/ghostty.git
+cd ghostty
+git checkout sidebar-tabs
+zig build
+```
+
+The finished app is at `zig-out/Ghostty.app`. Launch it with:
+
+```bash
+open zig-out/Ghostty.app
+```
+
+It shows up as **Ghostty Sidebar** and uses its own bundle identifier
+(`com.angelolao.ghostty-sidebar`), so it installs and runs as a completely
+separate app from an official Ghostty install — its own preferences, its own
+permission grants, no clashes. Because it's a local (ad-hoc signed) build,
+macOS will prompt for permissions on first launch; that's expected.
+
 ---
 
 <!-- LOGO -->
