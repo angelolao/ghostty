@@ -44,6 +44,18 @@ class SidebarTabManager: ObservableObject {
     private var observers: [NSObjectProtocol] = []
     private var timer: Timer?
 
+    /// Combine subscriptions to the currently-selected surface's pwd/title, so
+    /// the active tab updates instantly instead of waiting for the next poll.
+    private var surfaceCancellables: Set<AnyCancellable> = []
+    private var observedSurfaceID: ObjectIdentifier?
+
+    /// Fallback poll interval. Covers changes that have no change event of their
+    /// own (sidebar metadata like the git branch, and background tabs' pwd/title).
+    /// The active tab's pwd/title are handled by Combine, and tab add/remove +
+    /// selection are handled by the key-window notifications, so this can be
+    /// relatively slow. The timer only runs while the window is on-screen.
+    private let pollInterval: TimeInterval = 1.0
+
     init(window: NSWindow, bellTriggersAttention: Bool = true) {
         self.window = window
         self.bellTriggersAttention = bellTriggersAttention
@@ -53,6 +65,7 @@ class SidebarTabManager: ObservableObject {
 
     deinit {
         timer?.invalidate()
+        surfaceCancellables.removeAll()
         observers.forEach { NotificationCenter.default.removeObserver($0) }
     }
 
@@ -63,7 +76,10 @@ class SidebarTabManager: ObservableObject {
             forName: NSWindow.didBecomeKeyNotification,
             object: nil,
             queue: .main
-        ) { [weak self] _ in self?.refresh() }
+        ) { [weak self] _ in
+            self?.updatePollingState()
+            self?.refresh()
+        }
         observers.append(titleObserver)
 
         let resignObserver = center.addObserver(
@@ -104,10 +120,69 @@ class SidebarTabManager: ObservableObject {
         }
         observers.append(desktopNotifObserver)
 
-        // Poll periodically for tab group changes, title changes, pwd changes.
-        timer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
+        // Pause the fallback poll whenever the window leaves the screen
+        // (minimized, hidden, on another Space, or fully covered) and resume it
+        // when the window becomes visible again. A backgrounded window then does
+        // no polling at all.
+        let occlusionObserver = center.addObserver(
+            forName: NSWindow.didChangeOcclusionStateNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] notification in
+            guard let self, let w = notification.object as? NSWindow, w === self.window else { return }
+            self.updatePollingState()
+        }
+        observers.append(occlusionObserver)
+
+        updatePollingState()
+    }
+
+    // MARK: - Polling
+
+    /// Start or stop the fallback poll based on whether the window is on-screen.
+    private func updatePollingState() {
+        guard let window, window.occlusionState.contains(.visible) else {
+            stopTimer()
+            return
+        }
+        startTimer()
+        // Catch up on anything missed while we weren't polling.
+        refresh()
+    }
+
+    private func startTimer() {
+        guard timer == nil else { return }
+        timer = Timer.scheduledTimer(withTimeInterval: pollInterval, repeats: true) { [weak self] _ in
             self?.refresh()
         }
+    }
+
+    private func stopTimer() {
+        guard timer != nil else { return }
+        timer?.invalidate()
+        timer = nil
+    }
+
+    /// Subscribe to the selected surface's pwd/title so the active tab refreshes
+    /// the instant they change, rather than on the next poll tick.
+    private func observeSelectedSurface(_ surface: Ghostty.SurfaceView?) {
+        let newID = surface.map(ObjectIdentifier.init)
+        guard newID != observedSurfaceID else { return }
+        observedSurfaceID = newID
+        surfaceCancellables.removeAll()
+        guard let surface else { return }
+
+        surface.$pwd
+            .dropFirst()
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in self?.refresh() }
+            .store(in: &surfaceCancellables)
+
+        surface.$title
+            .dropFirst()
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in self?.refresh() }
+            .store(in: &surfaceCancellables)
     }
 
     // MARK: - Attention
@@ -134,6 +209,10 @@ class SidebarTabManager: ObservableObject {
         }
 
         let selectedWindow = window.tabGroup?.selectedWindow ?? window
+
+        // Keep the Combine subscription pointed at the currently-selected surface.
+        let selectedController = selectedWindow.windowController as? BaseTerminalController
+        observeSelectedSurface(selectedController?.focusedSurface)
 
         let newTabs = tabWindows.map { w -> TabItem in
             let controller = w.windowController as? BaseTerminalController
